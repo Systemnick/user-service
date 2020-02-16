@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const serviceStoppingTimeout = 10
+const serviceStoppingTimeout = 60
 
 func main() {
 	c := config.GetConfigFromEnv()
@@ -25,7 +24,7 @@ func main() {
 	}
 
 	go func() {
-		if err := application.Run(); err != http.ErrServerClosed {
+		if err := application.Run(); err != nil {
 			logger.Fatal().Err(err).Msg("Service run error")
 			return
 		}

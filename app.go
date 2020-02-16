@@ -14,6 +14,7 @@ type Application struct {
 	config *config.Config
 	logger *zerolog.Logger
 	router *routing.Router
+	server *fasthttp.Server
 }
 
 func NewApplication(c *config.Config, l *zerolog.Logger) (*Application, error) {
@@ -36,10 +37,31 @@ func NewApplication(c *config.Config, l *zerolog.Logger) (*Application, error) {
 }
 
 func (a *Application) Run() error {
-	return fasthttp.ListenAndServe(":80", a.router.HandleRequest)
+	s := &fasthttp.Server{
+		Handler:     a.router.HandleRequest,
+		ReadTimeout: serviceStoppingTimeout,
+	}
+	a.server = s
+
+	return s.ListenAndServe(":80")
 }
 
-func (a *Application) Stop(context context.Context) error {
+func (a *Application) Stop(ctx context.Context) error {
+	shutdownChan := make(chan bool)
 
+	go func(ch chan bool) {
+		err := a.server.Shutdown()
+		if err != nil {
+			a.logger.Error().Err(err).Msg("Server shutdown error")
+		}
+		ch <- true
+	}(shutdownChan)
+
+	select {
+	case <-ctx.Done():
+		a.logger.Info().Msg("Server shutdown by timeout")
+	case <-shutdownChan:
+		a.logger.Info().Msg("Server successfully shutdown")
+	}
 	return nil
 }
