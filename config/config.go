@@ -8,10 +8,10 @@ import (
 )
 
 type Config struct {
-	DatabaseUrl      string `env:"DATABASE_URL"      envDefault:"postgres://postgres:password@127.0.0.1/postgres"`
+	DatabaseUrl      string `env:"DATABASE_URL"      envDefault:"postgres://postgres:password@postgres/postgres"`
 	DatabasePassword string `env:"DATABASE_PASSWORD" envDefault:"password"`
 	LogLevel         string `env:"LOG_LEVEL"         envDefault:"debug"`
-	HttpEndpoint     string `env:"HTTP_ENDPOINT"     envDefault:":8081"`
+	HttpEndpoint     string `env:"HTTP_ENDPOINT"     envDefault:":80"`
 }
 
 func GetConfigFromEnv() *Config {
