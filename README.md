@@ -19,3 +19,51 @@
 - Номер телефона
 
 Детали реализации остаются на усмотрение исполнителя.
+
+## Использование
+
+### Регистрация пользователя
+
+```bash
+curl api.users.local/v1/users \
+    --request POST \
+    --header 'Host: api.users.local' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "login": "user",
+        "phone": "0 (555) 385-55-00",
+        "email": "user@domain.int",
+        "password": "P@sssw0rd"
+    }'
+```
+
+### Аутентификация пользователя
+
+```bash
+curl api.users.local/v1/auth \
+    --request POST \
+    --header 'Host: api.users.local' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{
+        "login": "user",
+        "password": "P@sssw0rd"
+    }'
+```
+
+## TODO
+
+- Покрыть проект тестами
+- Реализовать хэширование паролей при сохранении в БД
++ Создать Dockerfile
++ Написать docker-compose.yml
+- Написать CI/CD
++ Написать начальные миграции для БД
+- Добавить метрики для мониторинга
+- Добавить авторизацию в Middleware
++ Реализовать валидацию входных данных
+- Улучшить валидацию входных данных
+- Реализовать генерацию токена при авторизации
+- Реализовать авторизацию по токенам
+- Реализовать возврат стандартных ошибок сервиса
+- Внедрить использование gRPC
+- Реализовать ролевую модель (ACL/RBAC)

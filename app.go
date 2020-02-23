@@ -2,19 +2,25 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/Systemnick/user-service/config"
+	"github.com/Systemnick/user-service/middleware"
+	"github.com/Systemnick/user-service/users/delivery/http"
+	"github.com/Systemnick/user-service/users/repository/pgx-users"
+	"github.com/Systemnick/user-service/users/use-case"
 	"github.com/qiangxue/fasthttp-routing"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
 type Application struct {
-	config *config.Config
-	logger *zerolog.Logger
-	router *routing.Router
-	server *fasthttp.Server
+	config       *config.Config
+	logger       *zerolog.Logger
+	router       *routing.Router
+	server       *fasthttp.Server
+	middleware   routing.Handler
+	usersHandler *http.UsersHandler
 }
 
 func NewApplication(c *config.Config, l *zerolog.Logger) (*Application, error) {
@@ -22,16 +28,21 @@ func NewApplication(c *config.Config, l *zerolog.Logger) (*Application, error) {
 	a.config = c
 	a.logger = l
 
+	repo, err := pgx_users.New(c.DatabaseUrl, "public", "users", 60*time.Second)
+	if err != nil {
+		l.Fatal().Err(err).Msg("Failed to init users repository")
+	}
+
+	a.middleware = middleware.New()
+
 	router := routing.New()
 	v1 := router.Group("/v1")
-	v1.Use(authorization)
-	v1.Get("/users", list).Post(h2)
-	v1.Put("/users/<id>", h3).Delete(h4)
+	v1.Use(middleware.New())
 
-	router.Get("/v1", func(c *routing.Context) error {
-		fmt.Fprintf(c, "Hello, world!\n")
-		return nil
-	})
+	a.router = router
+
+	uc := use_case.New(repo, 60*time.Second)
+	a.usersHandler = http.NewHandler(v1, uc, a.middleware)
 
 	return a, nil
 }
@@ -43,7 +54,7 @@ func (a *Application) Run() error {
 	}
 	a.server = s
 
-	return s.ListenAndServe(":80")
+	return s.ListenAndServe(a.config.HttpEndpoint)
 }
 
 func (a *Application) Stop(ctx context.Context) error {
@@ -61,7 +72,7 @@ func (a *Application) Stop(ctx context.Context) error {
 	case <-ctx.Done():
 		a.logger.Info().Msg("Server shutdown by timeout")
 	case <-shutdownChan:
-		a.logger.Info().Msg("Server successfully shutdown")
+		a.logger.Info().Msg("Server shutdown gracefully")
 	}
 	return nil
 }

@@ -8,8 +8,10 @@ import (
 )
 
 type Config struct {
-	DatabaseUrl string `env:"DATABASE_URL"`
-	LogLevel    string `env:"LOG_LEVEL"`
+	DatabaseUrl      string `env:"DATABASE_URL"      envDefault:"postgres://postgres:password@127.0.0.1/postgres"`
+	DatabasePassword string `env:"DATABASE_PASSWORD" envDefault:"password"`
+	LogLevel         string `env:"LOG_LEVEL"         envDefault:"debug"`
+	HttpEndpoint     string `env:"HTTP_ENDPOINT"     envDefault:":8081"`
 }
 
 func GetConfigFromEnv() *Config {
@@ -35,13 +37,19 @@ func GetConfigFromEnv() *Config {
 
 		field := v.Field(i)
 		envVar := v.Type().Field(i).Tag.Get("env")
+		defVal := v.Type().Field(i).Tag.Get("envDefault")
 
 		switch field.Type().String() {
 		case "string":
-			value := readEnvStr(envVar, "")
+			value := readEnvStr(envVar, defVal)
 			field.SetString(value)
-		case "int":
-			value := readEnvInt64(envVar, 0)
+		case "int64":
+			iDefVal, err := strconv.ParseInt(defVal, 10, 64)
+			if err != nil {
+				fmt.Printf("Default value for %s: bad int64 value: %s\n", field.String(), err.Error())
+			}
+
+			value := readEnvInt64(envVar, iDefVal)
 			field.SetInt(value)
 		}
 	}

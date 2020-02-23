@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const serviceStoppingTimeout = 60
+const serviceStoppingTimeout = 60*time.Second
 
 func main() {
 	c := config.GetConfigFromEnv()
@@ -32,12 +32,12 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
-	logger.Debug().Msg("Get signal starting shutdown")
+	logger.Debug().Msg("Get signal for shutdown")
 
-	ctx, cancel := context.WithTimeout(context.Background(), serviceStoppingTimeout*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), serviceStoppingTimeout)
 	defer cancel()
 	if err := application.Stop(ctx); err != nil {
-		logger.Fatal().Err(err).Msg("Service stop error")
+		logger.Fatal().Err(err).Msg("Service shutdown error")
 		return
 	}
 }
@@ -59,7 +59,7 @@ func initLogger(level string) *zerolog.Logger {
 	if err != nil {
 		zerolog.SetGlobalLevel(l)
 	} else {
-		logger.Warn().Err(err).Msg("Default log level is debug")
+		logger.Debug().Err(err).Msg("Default log level is debug")
 	}
 
 	return &logger
